@@ -99,18 +99,3 @@ Windows 包的启动器使用本包相对路径，不依赖原开发机的 `D:\2
 
 先停平台再复制整个 `data/`（包含数据库、uploads 和 AWD-PLUS 修补包 vault/staging）和 `config.env`，或使用 `scripts/backup.py` 的 SQLite 一致备份流程并手动补存 vault/staging 目录。当前主机的 `.runtime` 另见 `RUNTIME_STORAGE.md`，不能按新运行包的日志目录对待。升级先备份业务数据，替换程序和前端，再启动并检查迁移结果；不要将本次空库部署包覆盖到原机的数据库上。
 
-源码重建：准备 Go 1.24+、Node.js 24、Python 3.11+，在两个前端目录执行 `npm ci`，回到源码根目录执行：
-
-```text
-python scripts/build_clean_distribution.py --stage all --version YOUR-NEW-VERSION
-```
-
-请使用 `build_clean_distribution.py`。历史 `build_distribution.py` / `deploy/build.sh` 是以前含题库交付的工具，其规则与本次交付不同。
-
-旧开发机维护脚本（引用旧 .runtime 路径）已从此源码包排除。新机请使用运行包根目录中的部署、启动和关闭脚本。
-
-## 7. 验证边界
-
-交付前会重新编译可执行文件与双前端，检查压缩包清单、摘要和禁止目录，并使用隔离临时目录启动 Windows 版验证三端口及空库初始化。Linux 文件可验证 ELF 架构和 shell 语法；当前 Windows 开发机不能代替一台全新的 Linux/Windows 主机验证系统包安装、UAC、重启、BIOS、外网软件源与实际网络 ACL。不要将这些环境相关项视为已经在新主机验收。
-
-交付目录中的 `VERIFICATION.json` 记录实际执行的项目和结果；不存在真实新主机安装测试时会明确标记，不能用构建成功替代部署成功。
