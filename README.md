@@ -1,101 +1,151 @@
-# Athena安全竞赛平台
+# Athena安全竞赛平台部署教程
 
-提供 Windows x64、Linux x64、Linux ARM64 可执行部署包。所有包均不包含当前题库、题目附件、题目镜像、现有账号、队伍、成绩或数据库。首次运行自动创建空数据库，创建首位管理员时由系统生成随机密码，保存后再添加赛事、队伍和自己的题目。
+## 一、Windows 部署
 
-## 1. 选择下载包
+1. 下载并解压 Windows x64 发布包，例如解压到 `D:\AthenaCTF`。
+2. 双击 `AthenaCTF.exe`，保持服务窗口运行。
+3. 浏览器打开管理端：**http://127.0.0.1:10012**。
+4. 按页面引导创建管理员，保存随机生成的初始密码。
+5. 选手端地址：**http://127.0.0.1:10011**。
+6. 停止平台时，在服务窗口按 **Ctrl+C**，等待程序退出。
 
-| 文件名中的标识                    |                                                              |
-| --------------------------------- | ------------------------------------------------------------ |
-|                                   |                                                              |
-| `windows-amd64-no-questions.zip`  | Windows 10 1809+ / Windows 11 x64 运行包（平台本体不要求 Docker Desktop）。 |
-| `linux-amd64-no-questions.tar.gz` | Intel/AMD x64 Linux 服务器运行包，推荐正式比赛使用。         |
-| `linux-arm64-no-questions.tar.gz` | ARM64 Linux 服务器运行包。题目镜像也必须支持 ARM64。         |
-| `SHA256SUMS.txt`                  | 压缩包 SHA-256 校验值。                                      |
+平台程序支持 Windows 10 / Windows 11 x64，无需安装 Go、Node.js 或数据库。请将程序放在有写入权限的目录，不要直接在压缩包内运行。
 
-运行包已经包含 Go 可执行程序与两个前端生产页面，新服务器**无需安装 Go、Node.js、npm、MySQL**。数据库是程序自带的 SQLite 驱动。Docker 用于后续添加的容器题。
+## 二、Linux 部署
 
-解压到固定目录后运行脚本。Linux 建议 `/opt/bjxctf`，路径必须是无空格的 ASCII 路径，且服务账号能遍历其上级目录，不要放到 `/root` 下。不要在压缩包预览窗口里直接运行，也不要混合不同系统的文件。每个运行包内的 `MANIFEST.json` 记录逐文件摘要，`BUILDINFO.json` 记录编译架构。
-
-## 2. 推荐部署系统和资源
-
-正式比赛推荐 **Ubuntu Server 24.04 LTS + 原生 Docker Engine + systemd**。Linux 下 Docker 直接使用宿主机内核，后台服务、重启恢复和网络隔离更容易统一管理；Windows 更适合开发、演示和日常测试。Docker 官方支持在 Ubuntu 上通过签名软件源安装 Engine；Docker Desktop 不支持 Windows Server，因此不要在 Windows Server 上运行本包的 Desktop 安装流程。[Docker Ubuntu 安装说明](https://docs.docker.com/engine/install/ubuntu/)、[Docker Windows 系统要求](https://docs.docker.com/desktop/setup/install/windows-install/)
-
-针对约 100 人、30 队、每队同时 1 个 Web 容器，建议先准备 **16 vCPU、64 GB 内存、500 GB NVMe SSD、千兆网络**。轻量题、单容器内存限制约 512 MB 时可用 8 vCPU/32 GB 起步；若单题需要 1 GB 或更多，应按 30 个实际镜像峰值重新估算。以上是容量规划建议，不替代题目组合的 30 并发验收。保留数据库、镜像、备份空间，并将备份保存到另一块磁盘或另一台机器。
-
-## 3. Linux 一键部署
-
-自动安装覆盖 Ubuntu 22.04/24.04、Debian 12/13，要求 systemd、sudo/root 权限、可访问发行版软件源。Docker 安装需要 `download.docker.com`（可选，不影响平台本体）。脚本不支持通过 Docker Desktop 管理 Linux，也不会自动卸载已有 Docker 或覆盖已有数据。
-
-示例（替换为实际包名）：
+x64 主机执行：
 
 ```bash
-sha256sum -c SHA256SUMS.txt
-tar -xzf AthenaCTFv1.2-linux-amd64-no-questions.tar.gz
-cd AthenaCTFv1.2-linux-amd64-no-questions
-sudo bash deploy.sh --check
-sudo bash deploy.sh
+tar -xzf AthenaCTFv1.5-linux-amd64.tar.gz
+cd AthenaCTFv1.5-linux-amd64
+chmod +x AthenaCTF
+./AthenaCTF
 ```
 
-部署脚本检查架构、系统、必需命令并创建平台 systemd 服务。Docker 仅用于容器题：已安装则保留，未安装时交互确认后从官方签名源安装，也可用 `--no-docker` 跳过或安装失败继续。**缺少 Docker 不影响平台管理、空库初始化或静态题**，仅容器题不可用。配置已存在时保留现有 `config.env` 和 `data/`。包应放置在固定服务器路径，部署后不要随意移动。
+ARM64 主机使用 `linux-arm64` 包，并将命令中的目录名改为对应名称。
 
-首次安装默认绑定 `127.0.0.1`，避免空库首位管理员初始化接口在局域网上被他人抢先使用。部署完成后**直接在服务器终端**完成首次管理员初始化（输入账号与昵称，系统生成随机密码，仅在当前终端显示一次，不进入服务日志或命令行参数）：
-
-初始化完成后，在服务器终端执行：
+在服务器本机打开 **http://127.0.0.1:10012** 完成管理员初始化。没有桌面环境时，可以在自己的电脑建立 SSH 隧道：
 
 ```bash
-sudo bash deploy.sh --publish
+ssh -L 10012:127.0.0.1:10012 用户名@服务器IP
 ```
 
-脚本会先确认管理员已创建，再将平台绑定改为 `0.0.0.0`，支持双网卡上的服务器地址。若已自行修改端口，SSH 隧道也要使用对应端口。防火墙/云安全组仅向比赛网络和管理网络放行需要的入口；脚本不改写你原有 SSH 和全局防火墙策略。
+保持 SSH 连接，在自己电脑的浏览器打开 **http://127.0.0.1:10012**，创建管理员并保存随机密码。
 
-后续启动、关闭：
+## 三、开启局域网访问
+
+首次启动后，程序会在可执行文件所在目录生成 `config.env` 和 `data/`。
+
+1. 停止平台。
+2. 打开 `config.env`，将 `CTF_BIND_HOST=127.0.0.1` 改为 `CTF_BIND_HOST=0.0.0.0`。
+3. 重新启动平台。
+4. 在服务器防火墙放行 TCP **10011**（选手端）和 **10012**（管理端），按需要限制访问来源。
+5. 其他电脑访问 `http://服务器IP:10011` 或 `http://服务器IP:10012`。
+
+管理端初始化完成后再开启网络访问。若用于公网，需另行配置域名、HTTPS 反向代理和访问控制。
+
+## 四、修改端口和数据位置
+
+编辑程序旁的 `config.env`，保存后重启：
+
+```ini
+GIN_MODE=release
+TZ=Asia/Shanghai
+CTF_BIND_HOST=0.0.0.0
+CTF_APP_PORT=10010
+CTF_USER_WEB_PORT=10011
+CTF_ADMIN_WEB_PORT=10012
+CTF_DB_PATH=data/ctf_platform.db
+CTF_UPLOAD_ROOT=data/uploads
+CTF_INSTANCE_HOST=auto
+CTF_NETWORK_POLICY_READY=0
+```
+
+- 三个端口必须互不相同，且未被其他程序占用。
+- API 默认使用 10010；网页通过自身端口转发 API，一般不需要单独对外开放 10010。
+- 相对数据路径以可执行文件所在目录为起点。
+- 系统环境变量优先于 `config.env`。文件修改未生效时，检查是否设置了同名环境变量。
+- 不要同时启动两份程序共用同一数据库。
+
+## 五、配置容器题运行环境
+
+理论赛、静态附件题和平台管理不需要 Docker。容器题需要 **Docker CLI 和 Linux 容器引擎**。
+
+1. 为服务器安装合适的 Docker 环境。Windows 请使用支持当前系统版本的 Docker 环境，并切换到 Linux 容器。
+2. 使用运行平台的同一用户执行 `docker version`，确认能连接引擎。
+3. 如果连接指定引擎，在 `config.env` 增加 `CTF_DOCKER_HOST=引擎地址`；不要将未认证的 Docker API 暴露到公网。
+4. Linux 容器宿主机的网络隔离配置参考 `deploy/docker-daemon.json.example` 和 `deploy/firewall.sh`。先查看文件内容，根据实际网段和管理端口配置，再部署并验证隔离。
+5. 确认题目容器不能越权访问管理服务和其他队伍后，设置 `CTF_NETWORK_POLICY_READY=1`，重启平台。
+6. 在管理端检查 Docker 状态，再按 `docs/CHALLENGE_IMPORT.md` 导入题目。
+
+`CTF_NETWORK_POLICY_READY=1` 仅表示管理员已确认隔离，不能代替实际防火墙配置。
+
+## 六、Linux 设置开机启动
+
+将程序放入 `/opt/athenactf`，创建专用运行用户并赋予目录权限：
 
 ```bash
-sudo bash start.sh
-sudo bash stop.sh
+sudo useradd --system --home /opt/athenactf --shell /usr/sbin/nologin athena
+sudo chown -R athena:athena /opt/athenactf
 ```
 
-编辑 Linux `config.env` 后使用 `sudo bash start.sh --restart` 重新加载。`--check` 是只读检查，缺少依赖时返回非零退出码；执行普通 `deploy.sh` 才会安装。Linux 部署后平台和 Docker 配置为随主机开机自启，关闭脚本不会取消这个设置。
+用户已存在时无需重复创建。若需要 Docker，确认该用户可通过 Docker CLI 访问配置的引擎。
 
-**`stop.sh` 默认只停止本包的平台服务**，不会停止 Docker、任何容器或其他应用。停止后平台端口关闭；数据、上传文件和配置保留。**`stop.sh --docker`** 是显式的整机关闭维护入口，会停止本机 Docker Engine 及其上**所有**容器（包括其他应用的），仅在比赛专用主机上使用。下次启动用 `sudo bash start.sh`。题目实例是否继续有效由平台的过期时间与恢复逻辑决定，不应假设停机等于暂停赛程。
+新建 `/etc/systemd/system/athenactf.service`：
 
-## 4. Windows 一键部署
+```ini
+[Unit]
+Description=Athena CTF Platform
+After=network-online.target
+Wants=network-online.target
 
-平台本体支持 Windows 10 1809+ 和 Windows 11 x64，PowerShell 5.1+；不需要 Docker 即可启动/初始化/管理平台和跑静态题。容器题需要 WSL 2 + Docker Desktop（仅 Win10 22H2 19045 和 Win11 22631+ 有可验证支持）。解压包到例如 `D:/bjxctf`。
+[Service]
+Type=simple
+User=athena
+WorkingDirectory=/opt/athenactf
+ExecStart=/opt/athenactf/AthenaCTF
+Restart=on-failure
+RestartSec=5
+KillSignal=SIGINT
+TimeoutStopSec=30
 
-1. 双击 `check.cmd`，区分平台可运行 / 容器引擎未就绪 / 真不支持，只读不改动。
-2. 双击 **deploy.cmd**，按 UAC 提示授权管理员权限（仅用于写本包目录；不会安装 WSL 或 Docker）。
-3. 脚本部署平台并后台启动 API、选手端、管理端；无 Docker 也正常启动和初始化。
-4. 本机浏览器访问 `http://127.0.0.1:10012`，创建管理员并下载/保存系统生成的随机密码；确认保存后进入管理端，随后双击 `publish.cmd` 开启全部网卡访问。
-5. 容器题需要 Docker（可选）：双击 `install-containers.cmd`（显式 opt-in），或在 `config.env` 中配置 `CTF_DOCKER_HOST` 指向已有引擎。仅在 build 支持范围内自动安装。
+[Install]
+WantedBy=multi-user.target
+```
 
-容器支持的 BIOS/UEFI 虚拟化、Docker 安装许可和系统重启由部署方手动完成（仅容器题需要）。平台的启动、初始化和管理不依赖任何容器引擎。“一键部署”负责检测、安装和启动；遇到这些系统要求时会明确提示下一步，不会假装安装成功。Docker Desktop 的适用许可由部署方确认。[Docker Desktop Windows 安装文档](https://docs.docker.com/desktop/setup/install/windows-install/)
+先停止手动运行的进程，再执行：
 
-启动/停止本包平台。默认 `stop.cmd` 仅停止本包平台服务，不影响 Docker 或其他应用容器；如需显式关闭整个 Docker Engine（影响同机其他应用），另用 `stop-docker.cmd`。
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now athenactf
+```
 
-Windows 包的启动器使用本包相对路径，不依赖原开发机的 `D:\2026\...` 或 `.runtime/current-backend.json`。脚本采用 ASCII 文本，兼容 Windows PowerShell 5.1，避免中文编码造成解析错误。
+常用命令：
 
-## 5. 地址、题目与环境隔离
+```bash
+sudo systemctl status athenactf
+sudo systemctl restart athenactf
+sudo systemctl stop athenactf
+journalctl -u athenactf -f
+```
 
-发布后：选手端 `http://<服务器IP>:10011`，管理端 `http://<服务器IP>:10012`，API `http://<服务器IP>:10010/api/health`。同机 Docker 的 `CTF_INSTANCE_HOST=auto` 让题目地址使用选手访问平台时的服务器 IP。独立 Docker 节点需另行配置节点地址和访问权限，本次一键脚本用于同机 Docker。
+## 七、备份和升级
 
-本包没有任何预置赛题或题目镜像，不会拉取当前平台比赛的镜像。你需要在管理端新建题目、上传新附件，构建/导入自己准备的镜像并配置容器模板。平台导入适配器代码和人工创建题目的功能完整保留，旧题库正文/附件/答案未提供。新赛题镜像需要遵守平台 `FLAG` 环境变量注入约定。
+1. 停止平台。
+2. 备份整个 `data/` 目录和 `config.env`；如使用自定义存储路径，也要备份对应目录。
+3. 替换同系统、同架构的程序文件。
+4. 保留原有数据和配置，重新启动。
 
-`CTF_NETWORK_POLICY_READY=0` 是新包默认值：网页、管理、静态题判题可运行，容器启动暂不放行。部署方要按 `docs/DEPLOYMENT.md`、`deploy/firewall.sh` 在真实题目节点配置并验证网络隔离后，再设置为 `1` 并重启平台。仅安装 Docker 不等于容器网络已经隔离。现有防火墙例子面向 Docker iptables 后端，应先核对实际后端、地址池和网段。
+`data/` 包括数据库、附件和私有提交文件，不要只备份 EXE 或单个 `.db` 文件。需要回退时，使用升级前程序及配套的数据备份。
 
-如果需要 HTTPS，参考包内 `deploy/nginx.conf.example` 配置反向代理；配置 `CTF_PUBLIC_BASE_URL` 和受信代理范围。按最终域名或各网卡地址完成选手登录、容器连接、提交、计分、榜单和大屏验证后再正式开赛。
+## 八、常见启动问题
 
-## 6. 目录、备份与升级
-
-| 新运行包内路径                                 | 含义                                       |
-| ---------------------------------------------- | ------------------------------------------ |
-| `bin/`、`web/`                                 | 平台程序、管理/选手前端，必须保留。        |
-| `config.env`                                   | 本机配置，必须保留，不随新包覆盖。         |
-| `data/ctf_platform.db`、可能存在的 `-wal/-shm` | 真实数据库；禁止运行中只拷贝主文件。       |
-| `data/uploads/`                                | 后续上传的附件、封面等，与数据库配套备份。 |
-| `logs/` 或 Linux journal                       | 运行日志，可按保留策略清理。               |
-| `run/`                                         | PID/部署状态，用于启动停止，不是比赛数据。 |
-| `install-cache/`（Windows）                    | 已下载安装器，安装完成后可删除。           |
-
-先停平台再复制整个 `data/`（包含数据库、uploads 和 AWD-PLUS 修补包 vault/staging）和 `config.env`，或使用 `scripts/backup.py` 的 SQLite 一致备份流程并手动补存 vault/staging 目录。当前主机的 `.runtime` 另见 `RUNTIME_STORAGE.md`，不能按新运行包的日志目录对待。升级先备份业务数据，替换程序和前端，再启动并检查迁移结果；不要将本次空库部署包覆盖到原机的数据库上。
+| 现象                         | 处理方法                                                    |
+| ---------------------------- | ----------------------------------------------------------- |
+| Windows 双击后窗口关闭       | 在程序目录打开 PowerShell，执行 `./AthenaCTF.exe`，查看报错 |
+| 提示端口占用                 | 关闭冲突服务，或修改配置中的端口后重启                      |
+| 提示无法创建配置或数据库     | 将程序移动到可写目录，检查数据目录权限                      |
+| 本机能访问，其他电脑不能访问 | 检查监听地址、服务器 IP、防火墙和实际端口                   |
+| 页面能打开但无法启动靶机     | 检查 Docker CLI、引擎连接、镜像和网络隔离配置               |
+| Windows 提示未知发布者       | 核对下载来源和 SHA-256；本程序未附商业代码签名              |
 
